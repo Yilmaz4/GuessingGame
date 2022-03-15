@@ -27,11 +27,14 @@ SOFTWARE.
 #include <locale>
 #include <chrono>
 #include <list>
+#include <map>
 #include <algorithm>
 #include <format>
 #include <limits>
 #include <conio.h>
 #include <random>
+
+#include "simpleini/SimpleIni.h"
 
 #ifdef _WIN32
 	#define NOMINMAX
@@ -39,6 +42,10 @@ SOFTWARE.
 #else
 	#error This program only works on Windows platform!
 #endif
+
+#define _CRT_SECURE_NO_DEPRECATE
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
 
 constexpr auto full_block = L"\u2588";
 constexpr auto upper_half_block = L"\u2580";
@@ -53,8 +60,6 @@ namespace GuessingGame {
 
 		}
 		void start() {
-			range range;
-			settings settings;
 			options options;
 
 			const int space = 10;
@@ -98,8 +103,8 @@ namespace GuessingGame {
 					try {
 						while (true) {
 							this->clear_question();
-							const unsigned int number = this->get_random_number(range.min, range.max);
-							std::wcout << std::format(L"I've chosen a random number between {} and {}. Try to guess! You have {} chances.", range.min, range.max, settings.chances) << std::endl;
+							const unsigned int number = this->get_random_number(settings.min, settings.max);
+							std::wcout << std::format(L"I've chosen a random number between {} and {}. Try to guess! You have {} chances.", settings.min, settings.max, settings.chances) << std::endl;
 							int guess;
 							bool success = false;
 							for (unsigned int chance = 0; chance < settings.chances; chance++) {
@@ -152,7 +157,20 @@ namespace GuessingGame {
 					}
 					break;
 				case 2: {
+					CSimpleIniA ini;
+					SI_Error rc;
 
+					const char* chances;
+					const char* min;
+					const char* max;
+					
+					try {
+						const std::map<std::string, int> values = this->get_ini();
+					}
+					catch (...) {
+
+					}
+					break;
 				}
 				case 3: {
 
@@ -168,13 +186,10 @@ namespace GuessingGame {
 		const int raw_version[3] = { 0, 1, 0 };
 		const str title = std::format(L"Guessing Game v{}", this->version);
 	private:
-		struct range {
-			int min = 0;
-			int max = 50;
-		};
 		struct settings {
 			int chances = 7;
-			int difficulty = 2;
+			int min = 0;
+			int max = 50;
 		};
 		struct options {
 			str start = L"  1) Start the game";
@@ -182,8 +197,45 @@ namespace GuessingGame {
 			str language = L"  3) Language";
 			str exit = L"  4) Exit";
 		};
+		settings settings;
 
-		static int get_random_number(int min, int max) {
+		void load_ini(const std::string& filename = "GuessingGame.ini") {
+			CSimpleIniA ini;
+			SI_Error rc;
+
+			if (!this->file_exists(filename)) {
+				ini.SetUnicode();
+
+				rc = ini.LoadFile("GuessingGame.ini");
+				this->settings.chances = atoi(ini.GetValue("Settings", "chances", "7"));
+				this->settings.min = atoi(ini.GetValue("Settings", "min", "0"));
+				this->settings.max = atoi(ini.GetValue("Settings", "max", "50"));
+			}
+			else throw std::exception();
+		}
+		std::map<std::string, int> get_ini(const std::string& filename = "GuessingGame.ini") {
+			CSimpleIniA ini;
+			SI_Error rc;
+			
+			if (!this->file_exists(filename)) {
+				std::map<std::string, int> result = {
+					{ "chances", 7 },
+					{ "min", 00 },
+					{ "max", 50 }
+				};
+
+				ini.SetUnicode();
+				rc = ini.LoadFile("GuessingGame.ini");
+
+				result["chances"] = atoi(ini.GetValue("Settings", "chances", "7"));
+				result["min"] = atoi(ini.GetValue("Settings", "min", "0"));
+				result["max"] = atoi(ini.GetValue("Settings", "max", "50"));
+				return result;
+			}
+			else throw std::exception();
+		}
+
+		static int get_random_number(const int min, const int max) {
 			std::random_device rd;
 			std::mt19937 gen(rd());
 			std::uniform_int_distribution<> distr(min, max);
@@ -205,12 +257,22 @@ namespace GuessingGame {
 			}
 			SetConsoleMode(hstdin, mode);
 		}
-		static void clear_question(int length = 1000) {
+		static void clear_question(const int length = 1000) {
 			COORD position = { 0, 10 };
 			HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
 			SetConsoleCursorPosition(output, position);
 			std::wcout << str(length, L' ') << std::endl;
 			SetConsoleCursorPosition(output, position);
+		}
+		static inline bool file_exists(const std::string& path) {
+			FILE* file;
+			if (errno_t err = fopen_s(&file, path.c_str(), "r")) {
+				fclose(file);
+				return true;
+			}
+			else {
+				return false;
+			}
 		}
 	};
 }
