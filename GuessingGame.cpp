@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright © 2017-2022 Yilmaz Alpaslan
+Copyright Â© 2017-2022 Yilmaz Alpaslan
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -52,6 +52,7 @@ constexpr auto upper_half_block = L"\u2580";
 constexpr auto lower_half_block = L"\u2584";
 
 typedef std::wstring str;
+typedef std::map dict;
 
 namespace GuessingGame {
 	static class Game {
@@ -213,12 +214,12 @@ namespace GuessingGame {
 			}
 			else throw std::exception();
 		}
-		std::map<std::string, int> get_ini(const std::string& filename = "GuessingGame.ini") {
+		dict<std::string, int> get_ini(const std::string& filename = "GuessingGame.ini") {
 			CSimpleIniA ini;
 			SI_Error rc;
 			
 			if (!this->file_exists(filename)) {
-				std::map<std::string, int> result = {
+				dict<std::string, int> result = {
 					{ "chances", 7 },
 					{ "min", 00 },
 					{ "max", 50 }
